@@ -5,6 +5,12 @@ import numpy as np
 from cv2 import aruco
 from scipy.spatial.transform import Rotation as R
 
+"""
+    This is a personal project to explore OpenCV ArUco.
+    
+    Gustavo Freitas
+"""
+
 
 class ArUcoTools:
     # The different ArUco dictionaries built into the OpenCV library.
@@ -31,8 +37,26 @@ class ArUcoTools:
     _mtx = None
     _dist = None
 
-    def __init__(self):
+    _last_x_value = None
+    _last_y_value = None
+    _last_z_value = None
+
+    _calibration_images = None
+
+    # In meters
+    _aruco_marker_side_length_standard = 0.0785
+
+    def __init__(self, cal_images_path: str, cal_files_ext: str = 'png'):
         print('ArUco tools has been started')
+
+        print(f'Taking calibration images from {cal_images_path}')
+        self._calibration_images = self.take_local_images(file_path=cal_images_path, file_extension=cal_files_ext)
+        if not self._calibration_images.any():
+            print('Any pictures was found. You need take 4 photos with Chess board')
+            self._calibration_images = self.take_images(n_samples=4, save_local=True)
+
+        self.camera_calibration(images=self._calibration_images)
+        print('Calibrated camera')
 
     @staticmethod
     def take_images(n_samples: int, save_local: bool = False) -> np.ndarray:
@@ -72,11 +96,12 @@ class ArUcoTools:
         return np.array(images)
 
     @staticmethod
-    def take_local_images(file_path: str, file_extension: str = 'png') -> np.ndarray:
+    def take_local_images(file_path: str, file_extension: str = 'png', show_images: bool = False) -> np.ndarray:
         """
             Check files in local directory
         :param file_path:
         :param file_extension:
+        :param show_images:
         :return:
         """
 
@@ -88,10 +113,15 @@ class ArUcoTools:
 
         local_images = [cv.imread(file) for file in files]
 
+        if show_images and len(local_images):
+            for image in local_images:
+                while cv.waitKey(1) == -1:
+                    cv.imshow('Local image - Press any key to continue', image)
+            cv.destroyAllWindows()
+
         return np.array(local_images)
 
-    @staticmethod
-    def camera_calibration(images: np.ndarray, checkerboard_size: tuple = (6, 9)) -> tuple:
+    def camera_calibration(self, images: np.ndarray, checkerboard_size: tuple = (6, 9)) -> tuple:
         """
             Find intrinsic camera matrix and lens distortion coefficients.
         :return:
@@ -126,6 +156,9 @@ class ArUcoTools:
                 img_example = image
 
         _, mtx, dist, _, _ = cv.calibrateCamera(objpoints, imgpoints, img_example.shape[::-1], None, None)
+
+        self._mtx = mtx
+        self._dist = dist
 
         return mtx, dist
 
@@ -204,36 +237,63 @@ class ArUcoTools:
 
                 return corners_, ids_, rejects_
 
-    @staticmethod
-    def euler_from_quaternion(x, y, z, w) -> tuple:
+    def markers_translation_movement(self, tvecs: np.ndarray) -> tuple:
         """
-        Convert a quaternion into euler angles (roll, pitch, yaw)
-        roll is rotation around x in radians (counterclockwise)
-        pitch is rotation around y in radians (counterclockwise)
-        yaw is rotation around z in radians (counterclockwise)
 
-        :param x:
-        :param y:
-        :param z:
-        :param w:
-        :return
+        :param tvecs:
+        :return:
         """
+
+        if self._last_x_value is None:
+            self._last_x_value = tvecs[0][0]
+            self._last_y_value = tvecs[1][0]
+            self._last_z_value = tvecs[2][0]
+
+            return 0, 0, 0
+
+        dif_x = tvecs[0][0] - self._last_x_value
+        dif_y = tvecs[1][0] - self._last_y_value
+        dif_z = tvecs[2][0] - self._last_z_value
+
+        return dif_x, dif_y, dif_z
+
+    @staticmethod
+    def markers_rotation_movement(rvecs: np.ndarray) -> tuple:
+        """
+
+        :param rvecs:
+        :return:
+        """
+
+        rotation_matrix = np.eye(4)
+        rotation_matrix[0:3, 0:3] = cv.Rodrigues(np.array(rvecs))[0]
+
+        r = R.from_matrix(rotation_matrix[0:3, 0:3])
+        quaternion = r.as_quat()
+
+        # Quaternion format
+        x = quaternion[0]
+        y = quaternion[1]
+        z = quaternion[2]
+        w = quaternion[3]
+
         t0 = 2.0 * (w * x + y * z)
         t1 = 1.0 - 2.0 * (x * x + y * y)
-        roll_x = math.atan2(t0, t1)
+        roll_x = math.degrees(math.atan2(t0, t1))
 
         t2 = 2.0 * (w * y - z * x)
         t2 = 1.0 if t2 > 1.0 else t2
         t2 = -1.0 if t2 < -1.0 else t2
-        pitch_y = math.asin(t2)
+        pitch_y = math.degrees(math.asin(t2))
 
         t3 = 2.0 * (w * z + x * y)
         t4 = 1.0 - 2.0 * (y * y + z * z)
-        yaw_z = math.atan2(t3, t4)
+        yaw_z = math.degrees(math.atan2(t3, t4))
 
-        return roll_x, pitch_y, yaw_z  # in radians
+        return roll_x, pitch_y, yaw_z
 
-    def marker_estimate_position(self, corners: np.ndarray, marker_size: float, mtx: np.ndarray = _mtx,
+    def marker_estimate_position(self, corners: np.ndarray,
+                                 marker_size: float = _aruco_marker_side_length_standard, mtx: np.ndarray = _mtx,
                                  dist: np.ndarray = _dist) -> tuple:
         """
             This will estimate the rvec and tvec for each of the marker corners detected by:
@@ -263,16 +323,64 @@ class ArUcoTools:
             # trash.append(nada)
         return rvecs, tvecs
 
+    def draw_markers_pose(self, desired_aruco_dict: str = 'DICT_4X4_50') -> None:
+        """
+
+        :param desired_aruco_dict:
+        :return:
+        """
+
+        aruco_dict = aruco.getPredefinedDictionary(self.ARUCO_DICT[desired_aruco_dict])
+        aruco_param = aruco.DetectorParameters()
+
+        aruco_detector = aruco.ArucoDetector(aruco_dict, aruco_param)
+
+        camera = cv.VideoCapture(0)
+
+        if not camera.isOpened():
+            print('Cannot open camera')
+            exit()
+
+        while True:
+            ret, frame = camera.read()
+
+            if not ret:
+                print("Can't receive frame\nExiting ...")
+                exit()
+
+            corners_, ids_, rejects_ = aruco_detector.detectMarkers(frame)
+
+            frame = aruco.drawDetectedMarkers(frame, corners_, ids_)
+
+            if ids_ is not None:
+                rvecs_, tvecs_ = self.marker_estimate_position(corners=corners_,
+                                                               marker_size=self._aruco_marker_side_length_standard,
+                                                               mtx=self._mtx,
+                                                               dist=self._dist)
+
+                for i, pose in enumerate(ids_):
+                    frame = cv.drawFrameAxes(frame, self._mtx, self._dist, np.array(rvecs_[i]), np.array(tvecs_[i]),
+                                             self._aruco_marker_side_length_standard, 2)
+
+                    x, y, z = self.markers_translation_movement(tvecs=tvecs_[i])
+                    print(f'Translation movement for ID {pose}:\n\tX = {x}\n\tY = {y}\n\tZ = {z}')
+
+                    roll_, pitch_, yaw_ = self.markers_rotation_movement(rvecs=np.array(rvecs_[i]))
+                    print(f'Rotation movement for ID {pose}:\n\troll = {roll_}\n\tpitch = {pitch_}\n\tyaw = {yaw_}')
+
+            cv.imshow(f'Camera image with markers and axis', frame)
+
+            if cv.waitKey(1) != -1:
+                camera.release()
+                cv.destroyAllWindows()
+
 
 if __name__ == "__main__":
     print('Code has been started')
 
-    blabla = ArUcoTools()
+    local_path = r'C:\Users\gustavo.alves\Documents\personal_projects\OpenCV-Projects'
 
-    image_ = blabla.take_images(1)
+    _aruco = ArUcoTools(cal_images_path=local_path)
 
-    # input(f'{image_.shape}')
-
-    c_, i_, r_ = blabla.marker_identifier_on_image(image_[0])
-
-    print(f'{c_=}\n{i_=}\n{r_=}')
+    # Check ArUcos and estimate their poses
+    _aruco.draw_markers_pose()

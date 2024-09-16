@@ -7,6 +7,8 @@ class ImageProcessing:
     def __init__(self):
         print('class Image Processing')
 
+        self.live_camera()
+
     def filter(self, image: np.ndarray, filter_: str) -> np.ndarray:
         """
 
@@ -19,6 +21,9 @@ class ImageProcessing:
                 # highly effective in noise removal while keeping edges sharp. But the operation is slower compared
                 # to other filters.
                 cv.bilateralFilter(image, 9, 75, 75)
+
+            case 'blur':
+                cv.blur(image, (5, 5))
 
         return image
 
@@ -36,3 +41,5 @@ class ImageProcessing:
 
 if __name__ == "__main__":
     print('Code has been started')
+
+    blaiblaidi = ImageProcessing()
