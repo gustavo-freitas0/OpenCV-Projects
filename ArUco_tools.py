@@ -345,7 +345,7 @@ class ArUcoTools:
         :param marker_size: ArUco marker side length, in meters
         :param mtx: Intrinsic camera matrix
         :param dist: Lens distortion coefficient
-        :return:
+        :return: Rotation vector, Translation vector
         """
 
         if mtx is None or dist is None:
