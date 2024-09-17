@@ -41,30 +41,64 @@ class ArUcoTools:
     _last_y_value = None
     _last_z_value = None
 
+    _calibration_param_path = ""
     _calibration_images = None
 
     # In meters
     _aruco_marker_side_length_standard = 0.0785
 
-    def __init__(self, cal_images_path: str, cal_files_ext: str = 'png'):
+    def __init__(self, local_path: str = os.getcwd()):
+
+        if not os.path.isdir(local_path):
+            local_path = os.getcwd()
+
+        self._calibration_param_path = local_path
+
         print('ArUco tools has been started')
 
-        print(f'Taking calibration images from {cal_images_path}')
-        self._calibration_images = self.take_local_images(file_path=cal_images_path, file_extension=cal_files_ext)
-        if not self._calibration_images.any():
-            print('Any pictures was found. You need take 4 photos with Chess board')
-            self._calibration_images = self.take_images(n_samples=4, save_local=True)
+        self._mtx, self._dist = self.find_calibrate_parameters(file_path=self._calibration_param_path)
 
-        self.camera_calibration(images=self._calibration_images)
+        if self._mtx is None or self._dist is None:
+            print(f'Taking calibration images from {local_path}')
+            self._calibration_images = self.take_local_images(file_path=local_path)
+            if not self._calibration_images.any():
+                print('Any pictures was found. You need take 4 different photos with Chess board')
+                self._calibration_images = self.take_images(n_samples=4, save_local=True)
+                self.camera_calibration(images=self._calibration_images)
         print('Calibrated camera')
+
+    @staticmethod
+    def find_calibrate_parameters(file_path: str) -> tuple:
+        """
+            Find camera matrix and distortion coefficients
+        :param file_path: Directory with yaml file
+        :return: Camera matrix, Distortion coefficients
+        """
+
+        calibrate_param_file_name = None
+
+        for root, dirs, files in os.walk(file_path):
+            calibrate_param_file_name = [file for file in files if str(file).endswith('.yaml')]
+            if calibrate_param_file_name:
+                break
+
+        if not calibrate_param_file_name:
+            return None, None
+
+        open_file = cv.FileStorage(os.path.join(file_path, calibrate_param_file_name[0]), cv.FILE_STORAGE_READ)
+        param_mtx = open_file.getNode('K').mat()
+        param_dist = open_file.getNode('D').mat()
+        open_file.release()
+
+        return param_mtx, param_dist
 
     @staticmethod
     def take_images(n_samples: int, save_local: bool = False) -> np.ndarray:
         """
             Open the camera and take some photos
-        :param save_local: Enable save images on local machine
         :param n_samples: Number of photos desired
-        :return: photos
+        :param save_local: Enable save images on local machine
+        :return: Photos
         """
 
         images = []
@@ -98,11 +132,11 @@ class ArUcoTools:
     @staticmethod
     def take_local_images(file_path: str, file_extension: str = 'png', show_images: bool = False) -> np.ndarray:
         """
-            Check files in local directory
-        :param file_path:
-        :param file_extension:
-        :param show_images:
-        :return:
+            Get photos with chessboard from local directory
+        :param file_path: Photo directory
+        :param file_extension: Image extension, like png, jpeg, etc.
+        :param show_images: Show the photos taken
+        :return: Images with chess board
         """
 
         if not os.path.isdir(file_path):
@@ -124,7 +158,9 @@ class ArUcoTools:
     def camera_calibration(self, images: np.ndarray, checkerboard_size: tuple = (6, 9)) -> tuple:
         """
             Find intrinsic camera matrix and lens distortion coefficients.
-        :return:
+        :param images: Images with Chess board
+        :param checkerboard_size: Number of inner corners per a chessboard row and column
+        :return: Intrinsic camera matrix, len distortion coefficients
         """
 
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -160,18 +196,24 @@ class ArUcoTools:
         self._mtx = mtx
         self._dist = dist
 
+        open_file = cv.FileStorage(os.path.join(self._calibration_param_path, 'camera_calibration_parameters.yaml'),
+                                   cv.FILE_STORAGE_WRITE)
+        open_file.write('K', self._mtx)
+        open_file.write('D', self._dist)
+        open_file.release()
+
         return mtx, dist
 
     def generate_single_marker(self, marker_id: int, aruco_dict: str = 'DICT_4X4_50', marker_size: int = 400,
-                               path_save: str = None, file_ext: str = 'png') -> None:
+                               path_save: str = None, file_ext: str = 'png') -> np.ndarray:
         """
-
-        :param marker_id:
-        :param aruco_dict:
-        :param marker_size:
-        :param path_save:
-        :param file_ext:
-        :return:
+            Generates an ArUco model
+        :param marker_id: ArUco marker ID
+        :param aruco_dict: ArUco dictionary wanted
+        :param marker_size: Size of the image in pixels (1px = 0.0264583333 cm)
+        :param path_save: Directory path to save the image
+        :param file_ext: File extension, like png
+        :return: ArUco image
         """
         aruco_dict = aruco.getPredefinedDictionary(self.ARUCO_DICT[aruco_dict])
 
@@ -183,12 +225,14 @@ class ArUcoTools:
 
         cv.imwrite(f'{path_save}ArUco_{marker_size}_{marker_id}.{file_ext}', marker_img)
 
+        return marker_img
+
     def marker_identifier_on_image(self, image: np.ndarray, desired_aruco_dict: str = 'DICT_4X4_50') -> tuple:
         """
-
-        :param image:
-        :param desired_aruco_dict:
-        :return:
+            Identifies ArUco markers
+        :param image: Image shown
+        :param desired_aruco_dict: ArUco dictionary wanted
+        :return: ArUco corners, ArUco IDs and reject points
         """
 
         aruco_dict = aruco.getPredefinedDictionary(self.ARUCO_DICT[desired_aruco_dict])
@@ -202,9 +246,9 @@ class ArUcoTools:
 
     def marker_identifier_real_time(self, desired_aruco_dict: str = 'DICT_4X4_50') -> tuple:
         """
-
-        :param desired_aruco_dict:
-        :return:
+            Identifies ArUco markers and display them
+        :param desired_aruco_dict: ArUco dictionary wanted
+        :return: ArUco corners, ArUco IDs and reject points
         """
 
         aruco_dict = aruco.getPredefinedDictionary(self.ARUCO_DICT[desired_aruco_dict])
@@ -239,9 +283,9 @@ class ArUcoTools:
 
     def markers_translation_movement(self, tvecs: np.ndarray) -> tuple:
         """
-
-        :param tvecs:
-        :return:
+            Calculate translation movement
+        :param tvecs: Translation vectors estimated
+        :return: X movement, Y movement, Z movement
         """
 
         if self._last_x_value is None:
@@ -260,9 +304,9 @@ class ArUcoTools:
     @staticmethod
     def markers_rotation_movement(rvecs: np.ndarray) -> tuple:
         """
-
-        :param rvecs:
-        :return:
+            Calculate rotation movement
+        :param rvecs: Rotation vectors estimated
+        :return: Roll, Pitch, Yaw
         """
 
         rotation_matrix = np.eye(4)
@@ -296,13 +340,12 @@ class ArUcoTools:
                                  marker_size: float = _aruco_marker_side_length_standard, mtx: np.ndarray = _mtx,
                                  dist: np.ndarray = _dist) -> tuple:
         """
-            This will estimate the rvec and tvec for each of the marker corners detected by:
-               corners, ids, rejectedImgPoints = detector.detectMarkers(image)
-                corners - is an array of detected corners for each detected marker in the image
-                marker_size - is the size of the detected markers
-                mtx - is the camera matrix
-                distortion - is the camera distortion matrix
-                RETURN list of rvecs, tvecs, and trash (so that it corresponds to the old estimatePoseSingleMarkers())
+            Estimates translation and rotation markers position
+        :param corners: Vector of detected marker corners
+        :param marker_size: ArUco marker side length, in meters
+        :param mtx: Intrinsic camera matrix
+        :param dist: Lens distortion coefficient
+        :return:
         """
 
         if mtx is None or dist is None:
@@ -323,11 +366,11 @@ class ArUcoTools:
             # trash.append(nada)
         return rvecs, tvecs
 
-    def draw_markers_pose(self, desired_aruco_dict: str = 'DICT_4X4_50') -> None:
+    def draw_markers_pose(self, desired_aruco_dict: str = 'DICT_4X4_50', verbose_: bool = False) -> None:
         """
-
-        :param desired_aruco_dict:
-        :return:
+            Identifies ArUco markers and draw axis over them
+        :param desired_aruco_dict: ArUco dictionary wanted
+        :param verbose_: Shows markers translation and rotation movement
         """
 
         aruco_dict = aruco.getPredefinedDictionary(self.ARUCO_DICT[desired_aruco_dict])
@@ -362,11 +405,12 @@ class ArUcoTools:
                     frame = cv.drawFrameAxes(frame, self._mtx, self._dist, np.array(rvecs_[i]), np.array(tvecs_[i]),
                                              self._aruco_marker_side_length_standard, 2)
 
-                    x, y, z = self.markers_translation_movement(tvecs=tvecs_[i])
-                    print(f'Translation movement for ID {pose}:\n\tX = {x}\n\tY = {y}\n\tZ = {z}')
+                    if verbose_:
+                        x, y, z = self.markers_translation_movement(tvecs=tvecs_[i])
+                        print(f'Translation movement for ID {pose}:\n\tX = {x}\n\tY = {y}\n\tZ = {z}')
 
-                    roll_, pitch_, yaw_ = self.markers_rotation_movement(rvecs=np.array(rvecs_[i]))
-                    print(f'Rotation movement for ID {pose}:\n\troll = {roll_}\n\tpitch = {pitch_}\n\tyaw = {yaw_}')
+                        roll_, pitch_, yaw_ = self.markers_rotation_movement(rvecs=np.array(rvecs_[i]))
+                        print(f'Rotation movement for ID {pose}:\n\troll = {roll_}\n\tpitch = {pitch_}\n\tyaw = {yaw_}')
 
             cv.imshow(f'Camera image with markers and axis', frame)
 
@@ -378,9 +422,7 @@ class ArUcoTools:
 if __name__ == "__main__":
     print('Code has been started')
 
-    local_path = r'C:\Users\gustavo.alves\Documents\personal_projects\OpenCV-Projects'
-
-    _aruco = ArUcoTools(cal_images_path=local_path)
+    _aruco = ArUcoTools()
 
     # Check ArUcos and estimate their poses
     _aruco.draw_markers_pose()
