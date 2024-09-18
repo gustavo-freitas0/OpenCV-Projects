@@ -86,8 +86,8 @@ class ArUcoTools:
             return None, None
 
         open_file = cv.FileStorage(os.path.join(file_path, calibrate_param_file_name[0]), cv.FILE_STORAGE_READ)
-        param_mtx = open_file.getNode('K').mat()
-        param_dist = open_file.getNode('D').mat()
+        param_mtx = open_file.getNode('mtx').mat()
+        param_dist = open_file.getNode('dist').mat()
         open_file.release()
 
         return param_mtx, param_dist
