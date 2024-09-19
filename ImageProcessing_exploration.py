@@ -3,9 +3,12 @@ import numpy as np
 
 
 class ImageProcessing:
+    _camera_id = None
 
-    def __init__(self):
+    def __init__(self, camera_id: int = 0):
         print('class Image Processing')
+
+        self._camera_id = camera_id
 
         self.live_camera()
 
@@ -28,7 +31,7 @@ class ImageProcessing:
         return image
 
     def live_camera(self) -> None:
-        camera = cv.VideoCapture(0)
+        camera = cv.VideoCapture(self._camera_id)
 
         if camera.isOpened():
             while cv.waitKey(1) == -1:
