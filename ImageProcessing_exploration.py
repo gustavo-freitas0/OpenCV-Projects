@@ -2,6 +2,28 @@ import cv2 as cv
 import numpy as np
 
 
+def test_function() -> None:
+    """
+        Just for test changes in the class
+    """
+    _imageprocessing = ImageProcessing()
+
+    camera = cv.VideoCapture(0)
+
+    if not camera.isOpened():
+        print('Camera not opened')
+        exit()
+
+    while cv.waitKey(1) == -1:
+        ret, frame = camera.read()
+
+        if ret:
+            # Here you apply your image processing
+            frame = _imageprocessing.remove_noise(frame)
+
+            cv.imshow('Final image', frame)
+
+
 class ImageProcessing:
     _camera_id = None
 
@@ -20,6 +42,13 @@ class ImageProcessing:
         :return:
         """
 
+        # filter_functions = {
+        #     'blur': cv.blur,
+        #     'gaussianblur': cv.GaussianBlur,
+        #
+        #
+        # }
+
         match filter_:
             case 'bilateral':
                 # highly effective in noise removal while keeping edges sharp. But the operation is slower compared
@@ -31,6 +60,27 @@ class ImageProcessing:
 
         return image
 
+    @staticmethod
+    def remove_gaussian_noise(_image: np.ndarray) -> np.ndarray:
+        """
+            To remove noise you need a low-pass filter
+
+            - Mean filter - affect borders
+
+            - Gaussian blurring is highly effective in removing Gaussian noise - low pass filter
+
+            - Median blurring is highly effective against salt-and-pepper noise
+
+
+
+        :param _image: Image to be processed
+        :return: Image processing
+        """
+
+        # If sigmaX == sigmaY == 0 they are compute from ksize.width and ksize.height
+
+        return cv.GaussianBlur(src=_image, ksize=(5, 5), sigmaX=0, sigmaY=0, borderType=cv.BORDER_CONSTANT)
+
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
 
@@ -41,27 +91,6 @@ class ImageProcessing:
                     # apply here your image processing
 
                     cv.imshow(f'Camera {camera.getBackendName()} image', frame)
-
-
-def test_function() -> None:
-    """
-        Just for test changes in the class
-    """
-    _imageprocessing = ImageProcessing()
-
-    camera = cv.VideoCapture(0)
-
-    if not camera.isOpened():
-        print('Camera not opened')
-        exit()
-
-    while cv.waitKey(1) == -1:
-        ret, frame = camera.read()
-
-        if ret:
-            # Here you apply your image processing
-
-            cv.imshow('Final image', frame)
 
 
 if __name__ == "__main__":
