@@ -64,19 +64,12 @@ class ImageProcessing:
     def remove_gaussian_noise(_image: np.ndarray) -> np.ndarray:
         """
             To remove Gaussian noise, low-pass filter
-
-            - Mean filter - affect borders
-
-            - Gaussian blurring is highly effective in removing Gaussian noise - low pass filter
-
-            - Median blurring is highly effective against salt-and-pepper noise
-
-
-
         :param _image: Image to be processed
         :return: Image processing
         """
 
+        # input image can have any number of channels
+        # ksize, width and height can differ but they both must be positive and odd
         # If sigmaX == sigmaY == 0 they are compute from ksize.width and ksize.height
 
         return cv.GaussianBlur(src=_image, ksize=(5, 5), sigmaX=0, sigmaY=0, borderType=cv.BORDER_CONSTANT)
@@ -93,6 +86,9 @@ class ImageProcessing:
         # ksize must be odd and greater than 1
 
         return cv.medianBlur(src=_image, ksize=5)
+
+    @staticmethod
+    def
 
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
