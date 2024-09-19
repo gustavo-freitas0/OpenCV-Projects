@@ -32,34 +32,6 @@ class ImageProcessing:
 
         self._camera_id = camera_id
 
-        # self.live_camera()
-
-    def filter(self, image: np.ndarray, filter_: str) -> np.ndarray:
-        """
-
-        :param image:
-        :param filter_:
-        :return:
-        """
-
-        # filter_functions = {
-        #     'blur': cv.blur,
-        #     'gaussianblur': cv.GaussianBlur,
-        #
-        #
-        # }
-
-        match filter_:
-            case 'bilateral':
-                # highly effective in noise removal while keeping edges sharp. But the operation is slower compared
-                # to other filters.
-                cv.bilateralFilter(image, 9, 75, 75)
-
-            case 'blur':
-                cv.blur(image, (5, 5))
-
-        return image
-
     @staticmethod
     def remove_gaussian_noise(_image: np.ndarray) -> np.ndarray:
         """
