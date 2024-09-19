@@ -75,6 +75,20 @@ class ImageProcessing:
 
         return cv.bilateralFilter(src=_image, d=9, sigmaColor=75, sigmaSpace=75, borderType=cv.BORDER_CONSTANT)
 
+    @staticmethod
+    def adjust_gamma(_image: np.ndarray, gamma: float = 1.0) -> np.ndarray:
+        """
+            Gamma correction
+        :param _image: Image to be processed
+        :param gamma: Gamma value - [0, 1.0]
+        :return: Image processing
+        """
+
+        invgamma = 1.0 / gamma
+        table = np.array([((i / 255.0) ** invgamma) * 255 for i in np.arange(0, 256)]).astype('uint8')
+
+        return cv.LUT(_image, table)
+
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
 
