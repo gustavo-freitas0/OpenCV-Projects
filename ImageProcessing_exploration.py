@@ -19,7 +19,7 @@ def test_function() -> None:
 
         if ret:
             # Here you apply your image processing
-            frame = _imageprocessing.remove_noise(frame)
+            frame = _imageprocessing.remove_noise_keeping_edges(frame)
 
             cv.imshow('Final image', frame)
 
