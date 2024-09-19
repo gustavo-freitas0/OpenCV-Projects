@@ -60,7 +60,20 @@ class ImageProcessing:
         return cv.medianBlur(src=_image, ksize=5)
 
     @staticmethod
-    def
+    def remove_noise_keeping_edges(_image: np.ndarray) -> np.ndarray:
+        """
+            Reduce noise and keep edges sharp
+        :param _image: Image to be processed
+        :return: Image processing
+        """
+
+        # input image with 1 or 3 channel
+        # d - if it is non-positive, it is computed from SigmaSpace
+        # SigmaColor - high values result in larger areas of semi-equal color
+        # SigmaSpace - larger value of the parameter means that farther pixels will influence each other
+        #   as long as their colors are close enough
+
+        return cv.bilateralFilter(src=_image, d=9, sigmaColor=75, sigmaSpace=75, borderType=cv.BORDER_CONSTANT)
 
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
