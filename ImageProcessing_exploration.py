@@ -49,7 +49,7 @@ def test_function() -> None:
     """
     _imageprocessing = ImageProcessing()
 
-    camera = cv.VideoCapture()
+    camera = cv.VideoCapture(0)
 
     if not camera.isOpened():
         print('Camera not opened')
@@ -67,4 +67,4 @@ def test_function() -> None:
 if __name__ == "__main__":
     print('Code has been started')
 
-    blaiblaidi = ImageProcessing()
+    test_function()
