@@ -63,7 +63,7 @@ class ImageProcessing:
     @staticmethod
     def remove_gaussian_noise(_image: np.ndarray) -> np.ndarray:
         """
-            To remove noise you need a low-pass filter
+            To remove Gaussian noise, low-pass filter
 
             - Mean filter - affect borders
 
@@ -80,6 +80,19 @@ class ImageProcessing:
         # If sigmaX == sigmaY == 0 they are compute from ksize.width and ksize.height
 
         return cv.GaussianBlur(src=_image, ksize=(5, 5), sigmaX=0, sigmaY=0, borderType=cv.BORDER_CONSTANT)
+
+    @staticmethod
+    def remove_salt_and_pepper_noise(_image: np.ndarray) -> np.ndarray:
+        """
+            To remove salt and pepper noise
+        :param _image: Image to be processed
+        :return: Image processing
+        """
+
+        # input image can be 1, 3 or 4 channel image
+        # ksize must be odd and greater than 1
+
+        return cv.medianBlur(src=_image, ksize=5)
 
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
