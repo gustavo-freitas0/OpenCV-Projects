@@ -89,6 +89,29 @@ class ImageProcessing:
 
         return cv.LUT(_image, table)
 
+    @staticmethod
+    def color_filter_for_tracking(_image: np.ndarray, _color: np.ndarray, _threshold: int = 10) -> np.ndarray:
+        """
+            Color filter to help object tracking.
+        :param _image: Image to be processed
+        :param _color: Color desired in HSV format
+        :param _threshold: Color threshold
+        :return: Image processing
+        """
+
+        # Color convertion
+        image_hsv = cv.cvtColor(_image, cv.COLOR_BGR2HSV)
+
+        # range color
+        lower_color = upper_color = _color
+        lower_color[0] -= _threshold
+        upper_color[0] += _threshold
+
+        # Color mask
+        mask = cv.inRange(image_hsv, lower_color, upper_color)
+
+        return cv.bitwise_and(src1=_image, src2=_image, mask=mask)
+
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
 
