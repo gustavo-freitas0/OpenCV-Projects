@@ -112,6 +112,20 @@ class ImageProcessing:
 
         return cv.bitwise_and(src1=_image, src2=_image, mask=mask)
 
+    @staticmethod
+    def zooming(_image: np.ndarray, _scale: tuple = (2, 2)) -> np.ndarray:
+        """
+            Zoom scaling
+        :param _image: Image to be processed
+        :param _scale: Zoom rate
+        :return: Larger image
+        """
+
+        height, width = _image.shape[:2] if len(_image) > 2 else _image.shape
+
+        # For zoom resizing it is recommended to use cubic interpolation
+        return cv.resize(src=_image, dsize=(2 * width, 2 * height), interpolation=cv.INTER_CUBIC)
+
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
 
