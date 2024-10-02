@@ -144,16 +144,17 @@ class ImageProcessing:
             return frame
         return None
 
-    def live_camera(self) -> None:
-        camera = cv.VideoCapture(self._camera_id)
-
-        if camera.isOpened():
-            while cv.waitKey(1) == -1:
-                ret, frame = camera.read()
-                if ret:
-                    # apply here your image processing
-
-                    cv.imshow(f'Camera {camera.getBackendName()} image', frame)
+    # We don't need this function 
+    # def live_camera(self) -> None:
+    #     camera = cv.VideoCapture(self._camera_id)
+    #
+    #     if camera.isOpened():
+    #         while cv.waitKey(1) == -1:
+    #             ret, frame = camera.read()
+    #             if ret:
+    #                 # apply here your image processing
+    #
+    #                 cv.imshow(f'Camera {camera.getBackendName()} image', frame)
 
 
 if __name__ == "__main__":
