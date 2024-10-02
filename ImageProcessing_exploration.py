@@ -1,3 +1,5 @@
+from typing import Optional
+
 import cv2 as cv
 import numpy as np
 
@@ -125,6 +127,22 @@ class ImageProcessing:
 
         # For zoom resizing it is recommended to use cubic interpolation
         return cv.resize(src=_image, dsize=(2 * width, 2 * height), interpolation=cv.INTER_CUBIC)
+
+    def take_picture(self) -> Optional[np.ndarray, None]:
+        """
+           Take the photo
+        :return: Image or None (if the camera has a problem)
+        """
+        camera = cv.VideoCapture(self._camera_id)
+        if camera.isOpened():
+            print('Enter any button to take the photo')
+            frame = None
+            while cv.waitKey(1) == -1:
+                ret, frame = camera.read()
+                if ret:
+                    cv.imshow(f'Image from camera {self._camera_id} : {camera.getBackendName()}', frame)
+            return frame
+        return None
 
     def live_camera(self) -> None:
         camera = cv.VideoCapture(self._camera_id)
