@@ -127,27 +127,18 @@ class ImageProcessing:
         :return: Image or None (if the camera has a problem)
         """
         camera = cv.VideoCapture(self._camera_id)
+        frame = None
+
         if camera.isOpened():
             print('Enter any button to take the photo')
-            frame = None
             while cv.waitKey(1) == -1:
                 ret, frame = camera.read()
                 if ret:
                     cv.imshow(f'Image from camera {self._camera_id} : {camera.getBackendName()}', frame)
-            return frame
-        return None
 
-    # We don't need this function
-    # def live_camera(self) -> None:
-    #     camera = cv.VideoCapture(self._camera_id)
-    #
-    #     if camera.isOpened():
-    #         while cv.waitKey(1) == -1:
-    #             ret, frame = camera.read()
-    #             if ret:
-    #                 # apply here your image processing
-    #
-    #                 cv.imshow(f'Camera {camera.getBackendName()} image', frame)
+        camera.release()
+        cv.destroyAllWindows()
+        return frame
 
 
 if __name__ == "__main__":
