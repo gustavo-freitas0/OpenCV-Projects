@@ -6,24 +6,17 @@ import numpy as np
 
 def test_function() -> None:
     """
-        Just for test changes in the class
+        Just for test the class
     """
     _imageprocessing = ImageProcessing()
 
-    camera = cv.VideoCapture(0)
+    _image = _imageprocessing.take_picture()
 
-    if not camera.isOpened():
-        print('Camera not opened')
-        exit()
+    # Apply image processing
 
-    while cv.waitKey(1) == -1:
-        ret, frame = camera.read()
-
-        if ret:
-            # Here you apply your image processing
-            frame = _imageprocessing.remove_noise_keeping_edges(frame)
-
-            cv.imshow('Final image', frame)
+    cv.imshow("Final image", _image)
+    if cv.waitKey(0) != -1:
+        cv.destroyAllWindows()
 
 
 class ImageProcessing:
@@ -144,7 +137,7 @@ class ImageProcessing:
             return frame
         return None
 
-    # We don't need this function 
+    # We don't need this function
     # def live_camera(self) -> None:
     #     camera = cv.VideoCapture(self._camera_id)
     #
