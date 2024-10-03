@@ -1,27 +1,41 @@
 import os
-
 import cv2 as cv
+import numpy as np
 from ultralytics import YOLO
 
 
 class YoloUtralytics:
     _model = None
-    _net = None
 
     _cam = None
     _cam_id = None
 
     _yolo_models = {
         'v11n': 'yolo11n.pt',
-        default: 'yolov8n.pt'
+        'v11s': 'yolo11s.pt',
+        'v11m': 'yolo11m.pt',
+        'v11l': 'yolo11l.pt',
+        'v11x': 'yolo11x.pt',
+        'v8n': 'yolov8n.pt'
     }
+
+    _coco_classes = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
+                     "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+                     "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+                     "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite",
+                     "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle",
+                     "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange",
+                     "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
+                     "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
+                     "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
+                     "teddy bear", "hair drier", "toothbrush"
+                     ]
 
     _patience = 3
 
-    def __init__(self, model: str = 'yolo11n.pt', camera_id: int = 0) -> None:
+    def __init__(self, model: str = 'v11n', camera_id: int = 0) -> None:
 
-        self._model = self._yolo_models[model]
-        self._net = YOLO(self._model)
+        self._model = YOLO(self._yolo_models[model])
 
         self._cam_id = camera_id
 
@@ -42,24 +56,37 @@ class YoloUtralytics:
         return tuple(color)
 
     def start_video_stream(self) -> bool:
-        self._cam = cv.VideoCapture(self._cam_id)
+        self._cam = cv.VideoCapture(self._cam_id, cv.CAP_DSHOW)
         return self._cam.isOpened()
 
     def __del__(self):
         self._cam.release()
         cv.destroyAllWindows()
 
-    def objects_detection(self, stream: bool = True) -> None:
+    def object_detection(self, _image: np.ndarray, stream: bool = True) -> list:
 
+        obj_list = []
+
+        results_obj_ = self._model(_image, stream=stream)
+
+        for result in results_obj_:
+            for box in result.boxes:
+                obj_list.append((self._coco_classes[int(box.cls[0])], box.conf[0]))
+
+        return obj_list
+
+    def track(self, stream: bool = True, verbose: bool = False) -> None:
         while stream:
             ret, frame = self._cam.read()
             if not ret:
                 continue
-            results = self._net.track(frame, stream=stream)
+            results = self._model.track(frame, stream=stream)
 
             for result in results:
                 # get the classes names
                 classes_names = result.names
+
+                if verbose: print(result.names)
 
                 # iterate over each box
                 for box in result.boxes:
@@ -98,3 +125,21 @@ class YoloUtralytics:
 
 if __name__ == "__main__":
     print('Code has been started')
+
+    # yolo = YoloUtralytics()
+    #
+    # yolo.track(verbose=True)
+
+    # Just learning
+
+    model = YOLO('yolo11n.pt')
+
+    # print(model.info())
+
+    cam = cv.VideoCapture(0)
+
+    while cv.waitKey() == -1:
+        _, frame = cam.read()
+        results = model(frame, stream=True)
+        for res in results:
+            print(res.boxes)
