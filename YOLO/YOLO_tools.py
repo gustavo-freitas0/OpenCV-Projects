@@ -64,6 +64,12 @@ class YoloUtralytics:
         cv.destroyAllWindows()
 
     def object_detection(self, _image: np.ndarray, stream: bool = True) -> list:
+        """
+
+        :param _image:
+        :param stream:
+        :return:
+        """
 
         obj_list = []
 
