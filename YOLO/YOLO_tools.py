@@ -46,6 +46,13 @@ class YoloUtralytics:
             self._patience += 1
         print('YOLO and Camera have been started')
 
+    def __str__(self):
+        return f"\nModel: {self._model}\nCamera: {self._cam} - {self._cam_id}"
+
+    def __del__(self):
+        self._cam.release()
+        cv.destroyAllWindows()
+
     @staticmethod
     def get_colours(cls_num: int) -> tuple:
         base_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
@@ -58,10 +65,6 @@ class YoloUtralytics:
     def start_video_stream(self) -> bool:
         self._cam = cv.VideoCapture(self._cam_id, cv.CAP_DSHOW)
         return self._cam.isOpened()
-
-    def __del__(self):
-        self._cam.release()
-        cv.destroyAllWindows()
 
     def object_detection(self, _image: np.ndarray, stream: bool = True) -> list:
         """
@@ -132,20 +135,20 @@ class YoloUtralytics:
 if __name__ == "__main__":
     print('Code has been started')
 
-    # yolo = YoloUtralytics()
-    #
-    # yolo.track(verbose=True)
+    yolo = YoloUtralytics()
+
+    yolo.track(verbose=True)
 
     # Just learning
 
-    model = YOLO('yolo11n.pt')
-
-    # print(model.info())
-
-    cam = cv.VideoCapture(0)
-
-    while cv.waitKey() == -1:
-        _, frame = cam.read()
-        results = model(frame, stream=True)
-        for res in results:
-            print(res.boxes)
+    # model = YOLO('yolo11n.pt')
+    #
+    # # print(model.info())
+    #
+    # cam = cv.VideoCapture(0)
+    #
+    # while cv.waitKey() == -1:
+    #     _, frame = cam.read()
+    #     results = model(frame, stream=True)
+    #     for res in results:
+    #         print(res.boxes)
