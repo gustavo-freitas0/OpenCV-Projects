@@ -1,0 +1,13 @@
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+.venv
+
+# Torch
+*.pt
