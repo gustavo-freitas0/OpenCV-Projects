@@ -63,7 +63,7 @@ class YoloUtralytics:
         return tuple(color)
 
     def start_video_stream(self) -> bool:
-        self._cam = cv.VideoCapture(self._cam_id, cv.CAP_DSHOW)
+        self._cam = cv.VideoCapture(self._cam_id)
         return self._cam.isOpened()
 
     def object_detection(self, _image: np.ndarray, stream: bool = True) -> list:
